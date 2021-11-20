@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Instant};
 use rand::distributions::{Distribution, Uniform};
 
 type Point = [f32; 2];
@@ -55,12 +55,10 @@ impl QueryAccelerator {
                 .push(idx);
         }
         
-        /*
-        TODO: See if this speeds up queries do to cache locality!
+        //TODO: See if this speeds up queries do to cache locality!
         for indices in cells.values_mut() {
             indices.sort();
         }
-        */
 
         Self {
             cells,
@@ -110,8 +108,22 @@ impl QueryAccelerator {
 
 fn main() {
     let radius = 0.75;
-    let points = random_points(1000, 1.);
+    let points = random_points(10_000, 1.);
     let query_accel = QueryAccelerator::new(&points, radius);
+
+    let random_indices = random_indices(100_000, points.len());
+    let start = Instant::now();
+    for &idx in &random_indices {
+        let indices = naive_query(&points, idx, radius);
+    }
+    println!("Naive took {}s", start.elapsed().as_secs_f32());
+
+    let start = Instant::now();
+    let accel = QueryAccelerator::new(&points, radius);
+    for &idx in &random_indices {
+        let indices = accel.query_neighbors(&points, idx);
+    }
+    println!("Accelerator took {}s", start.elapsed().as_secs_f32());
 
 }
 
