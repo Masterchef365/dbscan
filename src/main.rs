@@ -1,12 +1,10 @@
 use std::collections::HashMap;
-
-use rand::prelude::*;
 use rand::distributions::{Distribution, Uniform};
 
 type Point = [f32; 2];
 type IntPoint = [i32; 2];
 
-fn random_positions(n: usize, size: f32) -> Vec<Point> {
+fn random_points(n: usize, size: f32) -> Vec<Point> {
     let mut rng = rand::thread_rng();
     let dist = Uniform::new(-size, size);
     (0..n).map(|_| 
@@ -17,6 +15,12 @@ fn random_positions(n: usize, size: f32) -> Vec<Point> {
     ).collect()
 }
 
+fn random_indices(n: usize, max: usize) -> Vec<usize> {
+    let mut rng = rand::thread_rng();
+    let distr = Uniform::new(0, max);
+    distr.sample_iter(&mut rng).take(n).collect()
+}
+
 fn distance([x1, y1]: Point, [x2, y2]: Point) -> f32 {
     ((x1 - x2).powf(2.) + (y1 - y2).powf(2.)).sqrt()
 }
@@ -24,12 +28,12 @@ fn distance([x1, y1]: Point, [x2, y2]: Point) -> f32 {
 fn naive_query(points: &[Point], queried_idx: usize, radius: f32) -> Vec<usize> {
     let queried_point = points[queried_idx];
     let mut indices = vec![];
-    for (point_idx, point) in points {
-        if idx == queried_point {
+    for (point_idx, point) in points.iter().enumerate() {
+        if point_idx == queried_idx {
             continue;
         }
 
-        if distance(queried_point, point) <= radius {
+        if distance(queried_point, *point) <= radius {
             indices.push(point_idx);
         }
     }
@@ -67,11 +71,13 @@ impl QueryAccelerator {
     fn query_neighbors(&self, points: &[Point], queried_idx: usize) -> Vec<usize> {
         let query_point = points[queried_idx];
         let [origin_x, origin_y] = Self::calc_cell(query_point, self.radius);
-        const NEIGHBOR_CELLS: [IntPoint; 8] = [
+
+        const NEIGHBOR_CELLS: [IntPoint; 9] = [
             [-1, -1],
             [0, -1],
             [1, -1],
             [-1, 0],
+            [0, 0],
             [1, 0],
             [-1, 1],
             [0, 1],
@@ -85,7 +91,7 @@ impl QueryAccelerator {
             if let Some(cell_indices) = self.cells.get(&key) {
                 for &idx in cell_indices {
                     if idx != queried_idx {
-                        if distance(points[idx], query_point) < self.radius {
+                        if distance(points[idx], query_point) <= self.radius {
                             indices.push(idx);
                         }
                     }
@@ -103,6 +109,34 @@ impl QueryAccelerator {
 }
 
 fn main() {
-    let positions = random_positions(1000, 1.);
-    dbg!(&positions);
+    let radius = 0.75;
+    let points = random_points(1000, 1.);
+    let query_accel = QueryAccelerator::new(&points, radius);
+
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_answers_agree() {
+        let n_points = 1000;
+        let n_test_indices = 100;
+        let scale = 3.343;
+
+        let radius = 0.75;
+
+        let points = random_points(n_points, scale);
+
+        let query_accel = QueryAccelerator::new(&points, radius);
+
+        for &test_idx in &random_indices(n_test_indices, points.len()) {
+            let mut naive = naive_query(&points, test_idx, radius);
+            let mut accel = query_accel.query_neighbors(&points, test_idx);
+            naive.sort();
+            accel.sort();
+            assert_eq!(naive, accel);
+        }
+    }
 }
