@@ -81,12 +81,12 @@ mod tests {
 
         let radius = 0.75;
 
-        let points = random_points(n_points, scale);
+        let points = crate::random_points(n_points, scale);
 
         let query_accel = QueryAccelerator::new(&points, radius);
 
-        for &test_idx in &random_indices(n_test_indices, points.len()) {
-            let mut naive: Vec<usize> = naive_query(&points, test_idx, radius).collect();
+        for &test_idx in &crate::random_indices(n_test_indices, points.len()) {
+            let mut naive: Vec<usize> = crate::naive_query(&points, test_idx, radius).collect();
             let mut accel: Vec<usize> = query_accel.query_neighbors(&points, test_idx).collect();
             naive.sort();
             accel.sort();
