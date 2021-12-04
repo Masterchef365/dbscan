@@ -3,7 +3,7 @@ mod query_accel;
 pub use query_accel::QueryAccelerator;
 mod dbscan;
 
-pub use dbscan::dbscan;
+pub use dbscan::{dbscan, Label};
 
 /// Euclidean distance between two points
 pub fn distance_sq<const D: usize>(a: [f32; D], b: [f32; D]) -> f32 {
