@@ -4,7 +4,10 @@ pub use query_accel::QueryAccelerator;
 
 /// Euclidean distance between two points
 pub fn distance_sq<const D: usize>(a: [f32; D], b: [f32; D]) -> f32 {
-    a.into_iter().zip(b).map(|(a, b)| (a - b) * (a - b)).sum::<f32>()
+    a.into_iter()
+        .zip(b)
+        .map(|(a, b)| (a - b) * (a - b))
+        .sum::<f32>()
 }
 
 /// Execute an O(n) query to find the indices of all points within `radius` of `queried_idx` in `points`
