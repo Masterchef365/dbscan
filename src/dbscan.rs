@@ -37,10 +37,10 @@ pub fn dbscan<const D: usize>(points: &[[f32; D]], radius: f32, min_pts: usize) 
             if visited.insert(neighbor_idx) {
                 if !matches!(label[neighbor_idx], Label::Cluster(_)) {
                     label[neighbor_idx] = Label::Cluster(current_cluster);
-                    let neighbors = accel
-                        .query_neighbors(points, neighbor_idx)
-                        .collect::<Vec<usize>>();
-                    queue.extend_from_slice(&neighbors);
+                    let neighbors = || accel.query_neighbors(points, neighbor_idx);
+                    if neighbors().count() >= min_pts {
+                        queue.extend(neighbors());
+                    }
                 }
             }
         }
