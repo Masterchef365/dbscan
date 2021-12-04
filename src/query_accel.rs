@@ -36,9 +36,9 @@ impl<const D: usize> QueryAccelerator<D> {
     }
 
     // Query the neighbors of `queried_idx` in `points`
-    pub fn query_neighbors<'s>(
+    pub fn query_neighbors<'s, 'p: 's>(
         &'s self,
-        points: &'s [[f32; D]],
+        points: &'p [[f32; D]],
         queried_idx: usize,
     ) -> impl Iterator<Item = usize> + 's {
         let query_point = points[queried_idx];
