@@ -1,23 +1,30 @@
+use crate::distance_sq;
 use std::collections::HashMap;
-use crate::{Point, IntPoint, distance};
 
 /// Euclidean neighborhood query accelerator. Uses a hashmap grid
-pub struct QueryAccelerator {
-    cells: HashMap<IntPoint, Vec<usize>>,
+pub struct QueryAccelerator<const D: usize> {
+    cells: HashMap<[i32; D], Vec<usize>>,
+    neighbors: Vec<[i32; D]>,
     radius: f32,
+    radius_sq: f32,
 }
 
-impl QueryAccelerator {
-    pub fn new(points: &[Point], radius: f32) -> Self {
-        let mut cells: HashMap<IntPoint, Vec<usize>> = HashMap::new();
+impl<const D: usize> QueryAccelerator<D> {
+    pub fn new(points: &[[f32; D]], radius: f32) -> Self {
+        let mut cells: HashMap<[i32; D], Vec<usize>> = HashMap::new();
+
         for (idx, &point) in points.iter().enumerate() {
-            cells
-                .entry(Self::calc_cell(point, radius))
-                .or_default()
-                .push(idx);
+            cells.entry(quantize(point, radius)).or_default().push(idx);
         }
 
-        Self { cells, radius }
+        let neighbors = neighborhood::<D>();
+
+        Self {
+            cells,
+            radius,
+            radius_sq: radius * radius,
+            neighbors,
+        }
     }
 
     /// This should result in better cache locality for queries, but may take some time.
@@ -31,41 +38,57 @@ impl QueryAccelerator {
     // Query the neighbors of `queried_idx` in `points`
     pub fn query_neighbors<'s>(
         &'s self,
-        points: &'s [Point],
+        points: &'s [[f32; D]],
         queried_idx: usize,
     ) -> impl Iterator<Item = usize> + 's {
         let query_point = points[queried_idx];
-        let [origin_x, origin_y] = Self::calc_cell(query_point, self.radius);
+        let origin = quantize(query_point, self.radius);
 
-        const NEIGHBOR_CELLS: [IntPoint; 9] = [
-            [-1, -1],
-            [0, -1],
-            [1, -1],
-            [-1, 0],
-            [0, 0],
-            [1, 0],
-            [-1, 1],
-            [0, 1],
-            [1, 1],
-        ];
-
-        NEIGHBOR_CELLS
-            .into_iter()
-            .map(move |[dx, dy]| {
-                let key = [origin_x + dx, origin_y + dy];
+        self.neighbors
+            .iter()
+            .map(move |diff| {
+                let key = add(origin, *diff);
                 self.cells.get(&key).map(|cell_indices| {
                     cell_indices.iter().copied().filter(move |&idx| {
-                        idx != queried_idx && distance(points[idx], query_point) <= self.radius
+                        idx != queried_idx
+                            && distance_sq(points[idx], query_point) <= self.radius_sq
                     })
                 })
             })
             .flatten()
             .flatten()
     }
+}
 
-    fn calc_cell([x, y]: Point, radius: f32) -> IntPoint {
-        let calc = |v: f32| (v / radius).floor() as i32;
-        [calc(x), calc(y)]
+fn add<const D: usize>(mut a: [i32; D], b: [i32; D]) -> [i32; D] {
+    a.iter_mut().zip(b).for_each(|(a, b)| *a += b);
+    a
+}
+
+fn quantize<const D: usize>(p: [f32; D], radius: f32) -> [i32; D] {
+    p.map(|v| (v / radius).floor() as i32)
+}
+
+fn neighborhood<const D: usize>() -> Vec<[i32; D]> {
+    combos(-1, 1, 1)
+}
+
+fn combos<const D: usize>(min: i32, max: i32, step: i32) -> Vec<[i32; D]> {
+    let mut dims = [min; D];
+    let mut combos = vec![];
+    loop {
+        combos.push(dims);
+        if dims == [max; D] {
+            break combos;
+        }
+        for i in 0..dims.len() {
+            if dims[i] < max {
+                dims[i] += step;
+                break;
+            } else {
+                dims[i] = min;
+            }
+        }
     }
 }
 
@@ -81,7 +104,7 @@ mod tests {
 
         let radius = 0.75;
 
-        let points = crate::random_points(n_points, scale);
+        let points = crate::random_points::<2>(n_points, scale);
 
         let query_accel = QueryAccelerator::new(&points, radius);
 
@@ -92,5 +115,25 @@ mod tests {
             accel.sort();
             assert_eq!(naive, accel);
         }
+    }
+
+    #[test]
+    fn test_neighbors() {
+        let mut expect = vec![
+            [-1, -1],
+            [0, -1],
+            [1, -1],
+            [-1, 0],
+            [0, 0],
+            [1, 0],
+            [-1, 1],
+            [0, 1],
+            [1, 1],
+        ];
+        expect.sort();
+        let mut output = neighborhood::<2>();
+        output.sort();
+
+        assert_eq!(expect, output);
     }
 }

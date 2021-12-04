@@ -3,7 +3,7 @@ use std::time::Instant;
 
 fn main() {
     let radius = 0.75;
-    let points = random_points(100_000, 1.);
+    let points = random_points::<2>(100_000, 1.);
 
     let random_indices = random_indices(10_000, points.len());
     let start = Instant::now();
