@@ -2,7 +2,7 @@ use neighbor_query::*;
 use std::time::Instant;
 
 fn main() {
-    let radius = 0.75;
+    let radius = 0.10;
     let points = random_points::<2>(100_000, 1.);
 
     let random_indices = random_indices(10_000, points.len());
