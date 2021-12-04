@@ -1,6 +1,9 @@
 use rand::distributions::{Distribution, Uniform};
 mod query_accel;
 pub use query_accel::QueryAccelerator;
+mod dbscan;
+
+pub use dbscan::dbscan;
 
 /// Euclidean distance between two points
 pub fn distance_sq<const D: usize>(a: [f32; D], b: [f32; D]) -> f32 {

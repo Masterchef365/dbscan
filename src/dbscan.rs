@@ -8,7 +8,7 @@ pub enum Label {
     Cluster(u32),
 }
 
-fn dbscan<const D: usize>(points: &[[f32; D]], radius: f32, min_pts: usize) -> Vec<Label> {
+pub fn dbscan<const D: usize>(points: &[[f32; D]], radius: f32, min_pts: usize) -> Vec<Label> {
     let mut label = vec![Label::Undefined; points.len()];
     let accel = QueryAccelerator::new(points, radius);
 
@@ -19,13 +19,31 @@ fn dbscan<const D: usize>(points: &[[f32; D]], radius: f32, min_pts: usize) -> V
             continue;
         }
 
-        let neighbors = accel.query_neighbors(points, point_idx).collect::<HashSet<usize>>();
+        let neighbors = accel
+            .query_neighbors(points, point_idx)
+            .collect::<Vec<usize>>();
+
         if neighbors.len() < min_pts {
             label[point_idx] = Label::Noise;
             continue;
         }
 
         current_cluster += 1;
+
+        let mut queue = neighbors;
+        let mut visited = HashSet::new();
+
+        while let Some(neighbor_idx) = queue.pop() {
+            if visited.insert(neighbor_idx) {
+                if !matches!(label[neighbor_idx], Label::Cluster(_)) {
+                    label[neighbor_idx] = Label::Cluster(current_cluster);
+                    let neighbors = accel
+                        .query_neighbors(points, neighbor_idx)
+                        .collect::<Vec<usize>>();
+                    queue.extend_from_slice(&neighbors);
+                }
+            }
+        }
     }
 
     label
