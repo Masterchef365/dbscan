@@ -31,17 +31,22 @@ pub fn dbscan<const D: usize>(points: &[[f32; D]], radius: f32, min_pts: usize) 
         current_cluster += 1;
 
         let mut queue = neighbors;
-        let mut visited = HashSet::new();
 
         while let Some(neighbor_idx) = queue.pop() {
-            if visited.insert(neighbor_idx) {
-                if !matches!(label[neighbor_idx], Label::Cluster(_)) {
-                    label[neighbor_idx] = Label::Cluster(current_cluster);
-                    let neighbors = || accel.query_neighbors(points, neighbor_idx);
-                    if neighbors().count() >= min_pts {
-                        queue.extend(neighbors());
-                    }
-                }
+            if label[neighbor_idx] == Label::Noise {
+                label[neighbor_idx] = Label::Cluster(current_cluster);
+            }
+
+            if label[neighbor_idx] != Label::Undefined {
+                continue;
+            }
+
+            label[neighbor_idx] = Label::Cluster(current_cluster);
+
+            let neighbors = || accel.query_neighbors(points, neighbor_idx);
+
+            if neighbors().count() >= min_pts {
+                queue.extend(neighbors());
             }
         }
     }
