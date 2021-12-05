@@ -14,6 +14,7 @@ pub fn dbscan<const D: usize>(points: &[[f32; D]], radius: f32, min_pts: usize) 
 
     let mut current_cluster = 0;
 
+    // TODO: Don't iterate by point, iterate by query accel chunk (Hope for fewer cache misses)
     for point_idx in 0..points.len() {
         if label[point_idx] != Label::Undefined {
             continue;
@@ -28,7 +29,7 @@ pub fn dbscan<const D: usize>(points: &[[f32; D]], radius: f32, min_pts: usize) 
             continue;
         }
 
-        current_cluster += 1;
+        label[point_idx] = Label::Cluster(current_cluster);
 
         let mut queue = neighbors;
 
@@ -49,6 +50,8 @@ pub fn dbscan<const D: usize>(points: &[[f32; D]], radius: f32, min_pts: usize) 
                 queue.extend(neighbors());
             }
         }
+
+        current_cluster += 1;
     }
 
     label
