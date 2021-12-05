@@ -10,6 +10,7 @@ pub enum Label {
 
 pub fn dbscan<const D: usize>(points: &[[f32; D]], radius: f32, min_pts: usize) -> Vec<Label> {
     let mut label = vec![Label::Undefined; points.len()];
+
     let accel = QueryAccelerator::new(points, radius);
 
     let mut current_cluster = 0;

@@ -58,6 +58,10 @@ impl<const D: usize> QueryAccelerator<D> {
             .flatten()
             .flatten()
     }
+
+    pub fn tiles(&self) -> impl Iterator<Item=(&[i32; D], &Vec<usize>)> {
+        self.cells.iter()
+    }
 }
 
 fn add<const D: usize>(mut a: [i32; D], b: [i32; D]) -> [i32; D] {
