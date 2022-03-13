@@ -1,5 +1,4 @@
 use crate::QueryAccelerator;
-use std::collections::HashSet;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Label {

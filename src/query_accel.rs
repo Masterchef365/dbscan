@@ -1,7 +1,7 @@
 use crate::distance_sq;
-use std::collections::HashMap;
+use zwohash::HashMap;
 
-/// Euclidean neighborhood query accelerator. Uses a hashmap grid
+/// Euclidean neighborhood query accelerator. Uses a hashmap grid.
 pub struct QueryAccelerator<const D: usize> {
     cells: HashMap<[i32; D], Vec<usize>>,
     neighbors: Vec<[i32; D]>,
@@ -10,8 +10,9 @@ pub struct QueryAccelerator<const D: usize> {
 }
 
 impl<const D: usize> QueryAccelerator<D> {
+    /// Construct a new query accelerator 
     pub fn new(points: &[[f32; D]], radius: f32) -> Self {
-        let mut cells: HashMap<[i32; D], Vec<usize>> = HashMap::new();
+        let mut cells: HashMap<[i32; D], Vec<usize>> = HashMap::default();
 
         for (idx, &point) in points.iter().enumerate() {
             cells.entry(quantize(point, radius)).or_default().push(idx);
